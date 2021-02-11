@@ -1,5 +1,12 @@
 package wrapper
 
+import (
+	"context"
+	"fmt"
+	"reflect"
+	"time"
+)
+
 // Reach objective: verify minecraft version (Bedrock vs. Java and 1.XX) to not build / prevent using certain commands
 
 type Command interface {
@@ -11,14 +18,31 @@ type Command interface {
 // It was designed to be able to send and receive on channels identified by interface addresses.
 // Each event type could be registered as an address
 // Event is for any console resposne, error is for command processing only
-func (w *Wrapper) ExecuteCommand(cmd Command) (Event, error) {
-	// TODO: create/get channels for each event type on the wrapper
+func (w *Wrapper) ExecuteCommand(ctx context.Context, cmd Command) (Event, error) {
+	// TODO: get event addresses for each event type
+	var types []interface{}
+	for _, event := range cmd.Events() {
+		types = append(types, reflect.TypeOf(event))
+	}
 
 	// TODO: write the command to the console
+	if err := w.writeToConsole(cmd.Command()); err != nil {
+		return nil, err
+	}
 
 	// TODO: wait to receive on one of the event channels, and return that event
+	receiveCtxTimeout, _ := context.WithTimeout(ctx, time.Second)
+	mail, ok := w.eventRouting.Receive(receiveCtxTimeout, types...)
+	if !ok {
+		return nil, fmt.Errorf("failed to receive event related to the command")
+	}
 
-	return nil, nil
+	event, ok := mail.Contents.(Event)
+	if !ok {
+		return nil, fmt.Errorf("received contents were not an event")
+	}
+
+	return event, nil
 }
 
 /*

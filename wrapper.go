@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/densestvoid/postoffice"
 	"github.com/looplab/fsm"
 	"github.com/wlwanpan/minecraft-wrapper/events"
 	"github.com/wlwanpan/minecraft-wrapper/snbt"
@@ -90,6 +91,9 @@ type Wrapper struct {
 	ctxCancelFunc  context.CancelFunc
 	gameEventsChan chan (events.GameEvent)
 	loadedChan     chan bool
+
+	// Event processing
+	eventRouting postoffice.PostOffice
 }
 
 // NewDefaultWrapper returns a new instance of the Wrapper. This is
@@ -112,7 +116,17 @@ func NewWrapper(c Console, p LogParser) *Wrapper {
 		gameEventsChan: make(chan events.GameEvent, 10),
 		loadedChan:     make(chan bool, 1),
 	}
+
+	go func() {
+		_, ok := wpr.eventRouting.Receive(context.Background(), Event(&ServerStarted{}))
+		if !ok {
+			return
+		}
+		wpr.loadedChan <- true
+	}()
+
 	wpr.newFSM()
+
 	return wpr
 }
 
@@ -148,16 +162,52 @@ func (w *Wrapper) processLogEvents(ctx context.Context) {
 				return
 			}
 
-			ev, t := w.parseLineToEvent(line)
-			switch t {
-			case events.TypeState:
-				w.updateState(ev.(events.StateEvent))
-			case events.TypeCmd:
-				w.handleCmdEvent(ev.(events.GameEvent))
-			case events.TypeGame:
-				w.handleGameEvent(ev.(events.GameEvent))
-			default:
-			}
+			logLine := parseToLogLine(line)
+			line = logLine.output
+			
+			func(l string) {
+				eventInterfaces := w.eventRouting.Addresses()
+				fmt.Println("Addresses: ", eventInterfaces, "Line: ", l)
+				for _, eventInterface := range eventInterfaces {
+					// // Get the type of event
+					// reflectType, ok := eventType.(reflect.Type)
+					// if !ok {
+					// 	continue
+					// }
+
+					// // Create a new event of that type
+					// event, ok := reflect.New(reflectType).Interface()
+					// fmt.Println(ok)
+					// if !ok {
+					// 	continue
+					// }
+
+					event, ok := eventInterface.(Event)
+					if !ok {
+						continue
+					}
+
+					if !event.Parse(l) {
+						continue
+					}
+
+					sendCtxTimeout, _ := context.WithTimeout(ctx, time.Second)
+					if _, sent := w.eventRouting.Send(sendCtxTimeout, event, event); !sent {
+						fmt.Printf("no listeners for event type %s\n", event)
+					}
+				}
+			}(line)
+
+			// ev, t := w.parseLineToEvent(line)
+			// switch t {
+			// case events.TypeState:
+			// 	w.updateState(ev.(events.StateEvent))
+			// case events.TypeCmd:
+			// 	w.handleCmdEvent(ev.(events.GameEvent))
+			// case events.TypeGame:
+			// 	w.handleGameEvent(ev.(events.GameEvent))
+			// default:
+			// }
 		}
 	}
 }

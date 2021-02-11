@@ -2,10 +2,19 @@ package wrapper
 
 import (
 	"fmt"
+	"regexp"
 )
 
 type Event interface {
 	Parse(string) bool
+}
+
+type ServerStarted struct {}
+
+var startedRegex = regexp.MustCompile(`^Done \(\d+\.\d+s\)\! For help, type "help"$`)
+func (event *ServerStarted) Parse(s string) bool {
+	fmt.Println(s, startedRegex.MatchString(s))
+	return startedRegex.MatchString(s)
 }
 
 type IncorrectCommandArgument struct{}

@@ -1,0 +1,197 @@
+package commands
+
+import (
+	"fmt"
+
+	uuid "github.com/satori/go.uuid"
+	"github.com/wlwanpan/minecraft-wrapper/events"
+)
+
+type Attribute interface {
+	Attribute() string
+}
+
+type genericAttribute string
+
+func (a genericAttribute) Attribute() string {
+	return fmt.Sprintf("generic.%s", a)
+}
+
+const (
+	MaxHealth           genericAttribute = "max_health"
+	FollowRange         genericAttribute = "follow_range"
+	KnockbackResistance genericAttribute = "knockback_resistance"
+	MovementSpeed       genericAttribute = "movement_speed"
+	AttackDamage        genericAttribute = "attack_damage"
+	AttackSpeed         genericAttribute = "attack_speed"
+	Armor               genericAttribute = "armor"
+	ArmorToughness      genericAttribute = "armor_toughness"
+	AttackKnockback     genericAttribute = "attack_knockback"
+	Luck                genericAttribute = "luck"
+	FlyingSpeed         genericAttribute = "flying_speed"
+)
+
+type horseAttribute string
+
+func (a horseAttribute) Attribute() string {
+	return fmt.Sprintf("horse.%s", a)
+}
+
+const (
+	JumpSpeed horseAttribute = "jump_speed"
+)
+
+type zombieAttribute string
+
+func (a zombieAttribute) Attribute() string {
+	return fmt.Sprintf("zombie.%s", a)
+}
+
+const (
+	SpawnReinforcements zombieAttribute = "spawn_reinforcements"
+)
+
+// AttributeCommon
+type AttributeCommon struct {
+	Target    string
+	Attribute Attribute
+}
+
+func (c AttributeCommon) string() string {
+	return fmt.Sprintf("attribute %s %s", c.Target, c.Attribute)
+}
+
+func (c AttributeCommon) Events() []events.Event {
+	return nil
+}
+
+// AttributeGet
+type AttributeGet struct {
+	AttributeCommon
+	Scale *float64
+}
+
+func (c AttributeGet) Command() string {
+	str := c.AttributeCommon.string() + " get"
+	if c.Scale != nil {
+		str += fmt.Sprintf(" %f", *c.Scale)
+	}
+	return str
+}
+
+// AttributeBaseGet
+type AttributeBaseGet struct {
+	AttributeCommon
+	Scale *float64
+}
+
+func (c AttributeBaseGet) Command() string {
+	str := c.AttributeCommon.string() + " base get"
+	if c.Scale != nil {
+		str += fmt.Sprintf(" %f", *c.Scale)
+	}
+	return str
+}
+
+// AttributeBaseGet
+type AttributeBaseSet struct {
+	AttributeCommon
+	Value *float64
+}
+
+func (c AttributeBaseSet) Command() string {
+	return c.AttributeCommon.string() + fmt.Sprintf(" base set %f", *c.Value)
+}
+
+type Modifier interface {
+	UUID() string
+}
+
+type modifier uuid.UUID
+
+func (m modifier) UUID() string {
+	return uuid.UUID(m).String()
+}
+
+var (
+	ToolAndWeaponAttackDamage          modifier = [uuid.Size]byte{0xCB, 0x3F, 0x55, 0xD3, 0x64, 0x5C, 0x4F, 0x38, 0xA4, 0x97, 0x9C, 0x13, 0xA3, 0x3D, 0xB5, 0xCF}
+	ToolAndWeaponAttackSpeed           modifier = [uuid.Size]byte{0xFA, 0x23, 0x3E, 0x1C, 0x41, 0x80, 0x48, 0x65, 0xB0, 0x1B, 0xBC, 0xCE, 0x97, 0x85, 0xAC, 0xA3}
+	ArmorAndArmorToughnessBoots        modifier = [uuid.Size]byte{0x84, 0x5D, 0xB2, 0x7C, 0xC6, 0x24, 0x49, 0x5F, 0x8C, 0x9F, 0x60, 0x20, 0xA9, 0xA5, 0x8B, 0x6B}
+	ArmorAndArmorToughnessLeggings     modifier = [uuid.Size]byte{0xD8, 0x49, 0x9B, 0x04, 0x0E, 0x66, 0x47, 0x26, 0xAB, 0x29, 0x64, 0x46, 0x9D, 0x73, 0x4E, 0x0D}
+	ArmorAndArmorToughnessChestplate   modifier = [uuid.Size]byte{0x9F, 0x3D, 0x47, 0x6D, 0xC1, 0x18, 0x45, 0x44, 0x83, 0x65, 0x64, 0x84, 0x69, 0x04, 0xB4, 0x8E}
+	ArmorAndArmorToughnessHelmet       modifier = [uuid.Size]byte{0x2A, 0xD3, 0xF2, 0x46, 0xFE, 0xE1, 0x4E, 0x67, 0xB8, 0x86, 0x69, 0xFD, 0x38, 0x0B, 0xB1, 0x50}
+	SprintingSpeedBoost                modifier = [uuid.Size]byte{0x66, 0x2A, 0x6B, 0x8D, 0xDA, 0x3E, 0x4C, 0x1C, 0x88, 0x13, 0x96, 0xEA, 0x60, 0x97, 0x27, 0x8D}
+	FleeingSpeedBoost                  modifier = [uuid.Size]byte{0xE1, 0x99, 0xAD, 0x21, 0xBA, 0x8A, 0x4C, 0x53, 0x8D, 0x13, 0x61, 0x82, 0xD5, 0xC6, 0x9D, 0x3A}
+	EndermanAttackingSpeedBoost        modifier = [uuid.Size]byte{0x02, 0x0E, 0x0D, 0xFB, 0x87, 0xAE, 0x46, 0x53, 0x95, 0x56, 0x83, 0x10, 0x10, 0xE2, 0x91, 0xA0}
+	ZombifiedPiglinAttackingSpeedBoost modifier = [uuid.Size]byte{0x49, 0x45, 0x5A, 0x49, 0x7E, 0xC5, 0x45, 0xBA, 0xB8, 0x86, 0x3B, 0x90, 0xB2, 0x3A, 0x17, 0x18}
+	ConvertedArmorBonus                modifier = [uuid.Size]byte{0x7E, 0x02, 0x92, 0xF2, 0x94, 0x34, 0x48, 0xD5, 0xA2, 0x9F, 0x95, 0x83, 0xAF, 0x7D, 0xF2, 0x7F}
+	HorseArmorBonus                    modifier = [uuid.Size]byte{0x55, 0x6E, 0x16, 0x65, 0x8B, 0x10, 0x40, 0xC8, 0x8F, 0x9D, 0xCF, 0x9B, 0x16, 0x67, 0xF2, 0x95}
+	BabySpeedBoost                     modifier = [uuid.Size]byte{0xB9, 0x76, 0x6B, 0x59, 0x95, 0x66, 0x44, 0x02, 0xBC, 0x1F, 0x2E, 0xE2, 0xA2, 0x76, 0xD8, 0x36}
+	DrinkingSpeedPenalty               modifier = [uuid.Size]byte{0x5C, 0xD1, 0x7E, 0x52, 0xA7, 0x9A, 0x43, 0xD3, 0xA5, 0x29, 0x90, 0xFD, 0xE0, 0x4B, 0x18, 0x1E}
+	EffectMoveSpeed                    modifier = [uuid.Size]byte{0x91, 0xAE, 0xAA, 0x56, 0x37, 0x6B, 0x44, 0x98, 0x93, 0x5B, 0x2F, 0x7F, 0x68, 0x07, 0x06, 0x35}
+	EffectMoveSlowdown                 modifier = [uuid.Size]byte{0x71, 0x07, 0xDE, 0x5E, 0x7C, 0xE8, 0x40, 0x30, 0x94, 0x0E, 0x51, 0x4C, 0x1F, 0x16, 0x08, 0x90}
+	EffectDigSpeed                     modifier = [uuid.Size]byte{0xAF, 0x8B, 0x6E, 0x3F, 0x33, 0x28, 0x4C, 0x0A, 0xAA, 0x36, 0x5B, 0xA2, 0xBB, 0x9D, 0xBE, 0xF3}
+	EffectDigSlowDown                  modifier = [uuid.Size]byte{0x55, 0xFC, 0xED, 0x67, 0xE9, 0x2A, 0x48, 0x6E, 0x98, 0x00, 0xB4, 0x7F, 0x20, 0x2C, 0x43, 0x86}
+	EffectDamageBoost                  modifier = [uuid.Size]byte{0x64, 0x8D, 0x70, 0x64, 0x6A, 0x60, 0x4F, 0x59, 0x8A, 0xBE, 0xC2, 0xC2, 0x3A, 0x6D, 0xD7, 0xA9}
+	EffectWeakness                     modifier = [uuid.Size]byte{0x22, 0x65, 0x3B, 0x89, 0x11, 0x6E, 0x49, 0xDC, 0x9B, 0x6B, 0x99, 0x71, 0x48, 0x9B, 0x5B, 0xE5}
+	EffectHealthBoost                  modifier = [uuid.Size]byte{0x5D, 0x6F, 0x0B, 0xA2, 0x11, 0x86, 0x46, 0xAC, 0xB8, 0x96, 0xC6, 0x1C, 0x5C, 0xEE, 0x99, 0xCC}
+	EffectLuck                         modifier = [uuid.Size]byte{0x03, 0xC3, 0xC8, 0x9D, 0x70, 0x37, 0x4B, 0x42, 0x86, 0x9F, 0xB1, 0x46, 0xBC, 0xB6, 0x4D, 0x2E}
+	EffectUnluck                       modifier = [uuid.Size]byte{0xCC, 0x5A, 0xF1, 0x42, 0x2B, 0xD2, 0x42, 0x15, 0xB6, 0x36, 0x26, 0x05, 0xAE, 0xD1, 0x17, 0x27}
+)
+
+// AttributeModifier
+type AttributeModifier struct {
+	AttributeCommon
+	UUID Modifier
+}
+
+func (c AttributeModifier) string() string {
+	return c.AttributeCommon.string() + " modifier"
+}
+
+type attributeModifierType string
+
+const (
+	AttributeModifierTypeAdd          attributeModifierType = "add"
+	AttributeModifierTypeMultiply     attributeModifierType = "multiply"
+	AttributeModifierTypyMultiplyBase attributeModifierType = "multiply_base"
+)
+
+// AttributeModifierAdd
+type AttributeModifierAdd struct {
+	AttributeModifier
+	Name  string
+	Value float64
+	Type  attributeModifierType
+}
+
+func (c AttributeModifierAdd) Command() string {
+	return c.AttributeModifier.string() + fmt.Sprintf(
+		" add %s %s %f %s",
+		c.UUID,
+		c.Name,
+		c.Value,
+		c.Type,
+	)
+}
+
+// AttributeModifierRemove
+type AttributeModifierRemove struct {
+	AttributeModifier
+}
+
+func (c AttributeModifierRemove) Command() string {
+	return c.AttributeModifier.string() + fmt.Sprintf(" remove %s", c.UUID)
+}
+
+// AttributeModifierValueGet
+type AttributeModifierValueGet struct {
+	AttributeModifier
+	Name  string
+	Value float64
+	Type  attributeModifierType
+}
+
+func (c AttributeModifierValueGet) Command() string {
+	return c.AttributeModifier.string() + fmt.Sprintf(" value get %s", c.UUID)
+}
